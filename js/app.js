@@ -98,7 +98,7 @@
     if(!window.supabase){$("authMessage").textContent="Не удалось загрузить Supabase SDK. Проверьте подключение к интернету.";return;}
     client=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY);
     $("authForm").addEventListener("submit",async e=>{e.preventDefault();$("authMessage").textContent="Входим…";const {error}=await client.auth.signInWithPassword({email:$("email").value,password:$("password").value});$("authMessage").textContent=error?error.message:"";});
-    client.auth.onAuthStateChange(async(_event,session)=>{if(session){$("authScreen").classList.add("hidden");$("app").classList.remove("hidden");await loadTenders();}else{$("app").classList.add("hidden");$("authScreen").classList.remove("hidden");}});
+    client.auth.onAuthStateChange(async(_event,session)=>{if(session){$("authScreen").classList.add("hidden");$("app").classList.remove("hidden");await loadTenders();if(!window.__tenderRealtime){window.__tenderRealtime=client.channel("tenders-live").on("postgres_changes",{event:"*",schema:"public",table:"tenders",filter:"owner_id=eq."+session.user.id},()=>loadTenders()).subscribe();}}else{$("app").classList.add("hidden");$("authScreen").classList.remove("hidden");if(window.__tenderRealtime){client.removeChannel(window.__tenderRealtime);window.__tenderRealtime=null;}}});
     const {data:{session}}=await client.auth.getSession();if(session){$("authScreen").classList.add("hidden");$("app").classList.remove("hidden");await loadTenders();}
     $("logoutBtn").addEventListener("click",()=>client.auth.signOut());
     $("addTenderBtn").addEventListener("click",()=>openDialog());$("closeDialog").addEventListener("click",()=>$("tenderDialog").close());$("cancelDialog").addEventListener("click",()=>$("tenderDialog").close());
