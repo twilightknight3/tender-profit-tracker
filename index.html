@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101827"><title>Tender Profit Tracker</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="authScreen" class="auth-wrap">
+    <form id="authForm" class="auth-card">
+      <div class="brand-mark">TP</div><p class="eyebrow">ЛИЧНАЯ ФИНАНСОВАЯ ПАНЕЛЬ</p>
+      <h1>Tender Profit</h1><p class="muted">Войдите, чтобы управлять тендерами</p>
+      <label>Email<input id="email" type="email" autocomplete="username" required placeholder="you@example.com"></label>
+      <label>Пароль<input id="password" type="password" autocomplete="current-password" required minlength="6" placeholder="••••••••"></label>
+      <button class="primary full" type="submit">Войти</button><p id="authMessage" class="message"></p>
+      <p class="tiny muted">Первый аккаунт создаётся владельцем через Supabase Auth. Публичная регистрация в приложении отключена.</p>
+    </form>
+  </div>
+  <div id="app" class="app-shell hidden">
+    <aside class="sidebar">
+      <a class="brand" href="#"><span class="brand-mark small">TP</span><span>Tender <b>Profit</b></span></a>
+      <nav>
+        <button class="nav-link active" data-view="dashboard">▦ <span>Обзор</span></button>
+        <button class="nav-link" data-view="tenders">▤ <span>Тендеры</span></button>
+        <button class="nav-link" data-view="analytics">⌁ <span>Аналитика</span></button>
+      </nav>
+      <div class="sidebar-bottom"><div class="sync-state"><i></i><span id="syncLabel">Подключение…</span></div><button id="logoutBtn" class="nav-link">↪ <span>Выйти</span></button></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div><p class="eyebrow">УПРАВЛЕНИЕ ТЕНДЕРАМИ</p><h1 id="pageTitle">Обзор</h1></div><div class="top-actions"><span id="todayLabel" class="muted"></span><button id="addTenderBtn" class="primary">＋ Добавить тендер</button></div></header>
+      <section id="dashboardView" class="view">
+        <div class="stats-grid">
+          <article class="stat-card"><span>Общий оборот</span><strong id="totalAmount">0 сум</strong><small>Сумма всех лотов</small></article>
+          <article class="stat-card accent"><span>Чистая прибыль</span><strong id="totalProfit">0 сум</strong><small>После налогов и расходов</small></article>
+          <article class="stat-card"><span>Расходы и налоги</span><strong id="totalCosts">0 сум</strong><small>Налог + себестоимость + прочее</small></article>
+          <article class="stat-card"><span>Количество лотов</span><strong id="totalCount">0</strong><small>Всего записей</small></article>
+        </div>
+        <div class="content-grid"><article class="panel chart-panel"><div class="panel-head"><div><h2>Динамика прибыли</h2><p class="muted">По месяцам выбранного года</p></div><select id="chartYear"></select></div><canvas id="profitChart"></canvas></article><article class="panel"><div class="panel-head"><div><h2>Сводка</h2><p class="muted">Текущий год</p></div></div><div class="summary-line"><span>Средняя прибыль на лот</span><b id="avgProfit">0 сум</b></div><div class="summary-line"><span>Рентабельность</span><b id="margin">0%</b></div><div class="summary-line"><span>Ожидается оплата</span><b id="pendingCount">0</b></div><div class="summary-line"><span>Оплачено лотов</span><b id="paidCount">0</b></div></article></div>
+        <article class="panel"><div class="panel-head"><div><h2>Последние тендеры</h2><p class="muted">Недавно добавленные записи</p></div><button class="text-btn" data-goto="tenders">Все тендеры →</button></div><div class="table-wrap"><table><thead><tr><th>Дата</th><th>№ лота</th><th>Платформа</th><th>Сумма лота</th><th>Прибыль</th><th>Оплата</th></tr></thead><tbody id="recentRows"></tbody></table></div></article>
+      </section>
+      <section id="tendersView" class="view hidden">
+        <article class="panel"><div class="toolbar"><div class="searchbox">⌕ <input id="searchInput" placeholder="Поиск по номеру лота или платформе…"></div><select id="platformFilter"><option value="">Все платформы</option></select><select id="paymentFilter"><option value="">Любая оплата</option><option value="pending">Ожидается</option><option value="partial">Частично</option><option value="paid">Оплачено</option></select><input id="fromDate" type="date" aria-label="Дата от"><input id="toDate" type="date" aria-label="Дата до"><button id="clearFilters" class="secondary">Сбросить</button><button id="exportBtn" class="secondary">↓ CSV</button></div><div class="table-wrap"><table><thead><tr><th>Дата тендера</th><th>Номер лота</th><th>Платформа</th><th>Сумма лота</th><th>Налог</th><th>Себестоимость</th><th>Доп. расходы</th><th>Прибыль</th><th>Оплата</th><th></th></tr></thead><tbody id="tenderRows"></tbody></table><div id="emptyState" class="empty hidden">Записей пока нет. Нажмите «Добавить тендер», чтобы создать первую запись.</div></div><div class="table-footer"><span id="resultCount">0 записей</span><span>Все суммы указаны в UZS</span></div></article>
+      </section>
+      <section id="analyticsView" class="view hidden">
+        <div class="stats-grid"><article class="stat-card"><span>Прибыль за выбранный год</span><strong id="yearProfit">0 сум</strong></article><article class="stat-card"><span>Оборот за год</span><strong id="yearAmount">0 сум</strong></article><article class="stat-card"><span>Лотов за год</span><strong id="yearCount">0</strong></article><article class="stat-card"><span>Средняя маржа</span><strong id="yearMargin">0%</strong></article></div>
+        <article class="panel"><div class="panel-head"><div><h2>Годовая статистика</h2><p class="muted">Сравнение оборота и прибыли по месяцам</p></div><select id="analyticsYear"></select></div><canvas id="annualChart"></canvas></article>
+        <article class="panel"><div class="panel-head"><h2>Итоги по годам</h2></div><div class="table-wrap"><table><thead><tr><th>Год</th><th>Количество лотов</th><th>Оборот</th><th>Расходы</th><th>Прибыль</th><th>Маржа</th></tr></thead><tbody id="yearRows"></tbody></table></div></article>
+      </section>
+    </main>
+  </div>
+  <dialog id="tenderDialog"><form id="tenderForm" method="dialog" class="dialog-form"><div class="dialog-head"><div><p class="eyebrow">УЧЁТ ТЕНДЕРА</p><h2 id="dialogTitle">Новый тендер</h2></div><button type="button" id="closeDialog" class="icon-btn">×</button></div><input type="hidden" id="recordId">
+    <div class="form-grid"><label>Дата тендера<input id="tenderDate" type="date" required></label><label>Номер лота<input id="lotNumber" required placeholder="Например, 123456"></label><label>Платформа<select id="platform" required><option value="Xarid.uzex">Xarid.uzex</option><option value="Etender">Etender</option><option value="Другие">Другие</option></select></label><label>Сумма лота, сум<input id="lotAmount" type="number" min="0" step="0.01" required></label><label>Налог, сум<input id="tax" type="number" min="0" step="0.01" value="0"></label><label>Себестоимость, сум<input id="costPrice" type="number" min="0" step="0.01" value="0"></label><label>Дополнительные расходы, сум<input id="extraExpenses" type="number" min="0" step="0.01" value="0"></label><label>Оплата<select id="paymentStatus"><option value="pending">Ожидается</option><option value="partial">Частично оплачено</option><option value="paid">Оплачено</option></select></label><label class="wide">Примечания<textarea id="notes" rows="3" placeholder="Дополнительная информация…"></textarea></label></div>
+    <div class="profit-preview"><span>Расчётная прибыль</span><strong id="profitPreview">0 сум</strong></div><div class="dialog-actions"><button type="button" id="cancelDialog" class="secondary">Отмена</button><button type="submit" class="primary">Сохранить запись</button></div><p id="formMessage" class="message"></p>
+  </form></dialog>
+  <div id="toast" class="toast"></div>
+  <script src="js/config.js"></script><script src="js/app.js"></script>
+</body></html>
