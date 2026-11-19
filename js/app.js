@@ -6,7 +6,13 @@
   let client = null, tenders = [], profitChart = null, annualChart = null, activeView = "dashboard";
   const money = n => new Intl.NumberFormat("ru-RU",{maximumFractionDigits:0}).format(Number(n)||0) + " сум";
   const num = id => Number($(id).value || 0);
-  const dateNow = () => new Date().toISOString().slice(0,10);
+  const dateNow = () => {
+  const d = new Date();
+  const offset = d.getTimezoneOffset();
+  return new Date(d.getTime() - offset * 60000)
+    .toISOString()
+    .slice(0, 10);
+};
   const esc = s => String(s ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const statusText = s => ({pending:"Ожидается",partial:"Частично",paid:"Оплачено"}[s]||s);
   const profitOf = t => Number(t.lot_amount)-Number(t.tax)-Number(t.cost_price)-Number(t.extra_expenses);
